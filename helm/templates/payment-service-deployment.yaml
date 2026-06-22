@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fastmcp-app.fullname" . }}-payment-service
+  labels:
+    {{- include "fastmcp-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: payment-service
+spec:
+  {{- if not .Values.paymentService.autoscaling.enabled }}
+  replicas: {{ .Values.paymentService.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "fastmcp-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: payment-service
+  template:
+    metadata:
+      {{- with .Values.paymentService.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "fastmcp-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: payment-service
+    spec:
+      {{- if .Values.paymentService.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.paymentService.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fastmcp-app.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.paymentService.podSecurityContext | nindent 8 }}
+      containers:
+        - name: payment-service
+          securityContext:
+            {{- toYaml .Values.paymentService.securityContext | nindent 12 }}
+          image: "{{ .Values.paymentService.image.repository }}:{{ .Values.paymentService.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.paymentService.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          env:
+            - name: DATABASE_URL
+              value: "sqlite:////app/data/payment.db" # Assuming SQLite and a mounted volume
+            - name: FASTMCP_REDIS_URL
+              value: "redis://{{ include "fastmcp-app.fullname" . }}-redis-master:6379/0" # Assuming Redis is deployed as part of the chart
+          volumeMounts:
+            - name: payment-data
+              mountPath: /app/data
+          resources:
+            {{- toYaml .Values.paymentService.resources | nindent 12 }}
+      {{- with .Values.paymentService.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.paymentService.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.paymentService.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: payment-data
+          persistentVolumeClaim:
+            claimName: {{ include "fastmcp-app.fullname" . }}-payment-pvc # This PVC needs to be defined in a separate template

@@ -1,0 +1,25 @@
+apiVersion: v2
+name: multi-tenant-system
+description: A Helm chart for deploying the multi-tenant FastAPI system including user-service, payment-service, and gemini-adk-wrapper.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Platform Team
+    email: platform@example.com
+keywords:
+  - fastapi
+  - microservices
+  - multi-tenant
+  - mcp
+  - uv
+  - python
+dependencies:
+  - name: postgresql
+    version: 12.1.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.4.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

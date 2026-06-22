@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.manifest_cache.json
+.python-version
+blueprint.txt
+
+# Ignore service-local virtual environments explicitly
+user-service/.venv/
+payment-service/.venv/
+sdk/.venv/
+
+.env.example
+
+# SQLlite database files
+*.db
+*.sqlite
+*.db-shw
+*.db-wal
+*.db-journal
+payment.db-shm

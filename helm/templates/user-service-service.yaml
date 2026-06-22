@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "helm.fullname" . }}-user-service
+  labels:
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "helm.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: user-service

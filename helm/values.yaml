@@ -1,0 +1,98 @@
+global:
+  replicaCount: 1
+  imageRegistry: docker.io
+  imagePullPolicy: IfNotPresent
+  storageClass: standard
+
+userService:
+  name: user-service
+  image:
+    repository: multi-tenant-user-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  persistence:
+    enabled: true
+    size: 1Gi
+    mountPath: /app/data
+  env:
+    DATABASE_URL: "sqlite:///./data/users.db"
+    LOG_LEVEL: "INFO"
+
+paymentService:
+  name: payment-service
+  image:
+    repository: multi-tenant-payment-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  persistence:
+    enabled: true
+    size: 1Gi
+    mountPath: /app/data
+  env:
+    DATABASE_URL: "sqlite:///./data/payments.db"
+    LOG_LEVEL: "INFO"
+
+geminiAdkWrapper:
+  name: gemini-adk-wrapper
+  image:
+    repository: multi-tenant-gemini-adk
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  env:
+    GEMINI_API_KEY: "REPLACE_WITH_SECRET"
+    LITELLM_PROXY_URL: "http://litellm-proxy:4000"
+    LOG_LEVEL: "DEBUG"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: api.multi-tenant.local
+      paths:
+        - path: /users
+          pathType: Prefix
+          serviceName: user-service
+          servicePort: 8000
+        - path: /payments
+          pathType: Prefix
+          serviceName: payment-service
+          servicePort: 8001
+        - path: /ai
+          pathType: Prefix
+          serviceName: gemini-adk-wrapper
+          servicePort: 8002
+  tls: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

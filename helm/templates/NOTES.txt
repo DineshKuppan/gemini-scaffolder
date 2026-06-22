@@ -1,0 +1,30 @@
+1. Chart Installation Status:
+   {{ .Release.Name }} has been installed!
+
+2. Accessing the Services:
+   To get the URLs for your services, run:
+   kubectl get services -n {{ .Release.Namespace }}
+
+   You should see services like:
+   - {{ .Release.Name }}-user-service
+   - {{ .Release.Name }}-payment-service
+
+   If you are running in a local Kubernetes cluster (e.g., Minikube, Docker Desktop) and services are not exposed via an Ingress or LoadBalancer, you can port-forward to access them:
+
+   For user-service:
+   kubectl port-forward service/{{ .Release.Name }}-user-service 8000:80 -n {{ .Release.Namespace }}
+   Then, access it at http://localhost:8000
+
+   For payment-service:
+   kubectl port-forward service/{{ .Release.Name }}-payment-service 8001:80 -n {{ .Release.Namespace }}
+   Then, access it at http://localhost:8001
+
+3. Further Information:
+   - Check the logs of your pods:
+     kubectl logs -f -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }}
+
+   - Get detailed information about the deployment:
+     kubectl describe deployment {{ .Release.Name }}-user-service -n {{ .Release.Namespace }}
+     kubectl describe deployment {{ .Release.Name }}-payment-service -n {{ .Release.Namespace }}
+
+   - For more configuration options, refer to the 'values.yaml' file in the chart.

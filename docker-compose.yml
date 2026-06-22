@@ -1,0 +1,105 @@
+version: "3.8"
+
+services:
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - HOST=0.0.0.0
+      - DATABASE_URL=sqlite+aiosqlite:////data/user_service.db
+      - SQLITE_WAL_MODE=true
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+    volumes:
+      - user-db-data:/data
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - HOST=0.0.0.0
+      - DATABASE_URL=sqlite+aiosqlite:////data/payment_service.db
+      - SQLITE_WAL_MODE=true
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+    volumes:
+      - payment-db-data:/data
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  gemini-adk-wrapper:
+    build:
+      context: ./gemini_adk_wrapper
+      dockerfile: Dockerfile
+    container_name: gemini-adk-wrapper
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - HOST=0.0.0.0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LITELLM_PROXY_URL=${LITELLM_PROXY_URL}
+      - USER_SERVICE_URL=http://user-service:8001
+      - PAYMENT_SERVICE_URL=http://payment-service:8002
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  user-db-data:
+    driver: local
+  payment-db-data:
+    driver: local
+
+networks:
+  mcp-network:
+    driver: bridge
